@@ -7,7 +7,6 @@
 
 import re
 
-from Bio._py3k import _as_bytes
 from Bio._utils import read_forward
 from Bio.Alphabet import generic_protein
 from Bio.SearchIO._model import QueryResult, Hit, HSP, HSPFragment
@@ -188,9 +187,18 @@ class Hmmer2TextParser:
             ):
                 continue
 
-            id_, domain, seq_f, seq_t, seq_compl, hmm_f, hmm_t, hmm_compl, score, evalue = (
-                self.line.split()
-            )
+            (
+                id_,
+                domain,
+                seq_f,
+                seq_t,
+                seq_compl,
+                hmm_f,
+                hmm_t,
+                hmm_compl,
+                score,
+                evalue,
+            ) = self.line.split()
 
             frag = HSPFragment(id_, self.qresult.id)
             frag.alphabet = generic_protein

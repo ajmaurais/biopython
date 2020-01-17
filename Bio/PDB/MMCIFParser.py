@@ -39,7 +39,7 @@ class MMCIFParser:
             self._structure_builder = structure_builder
         else:
             self._structure_builder = StructureBuilder()
-        # self.header = None
+        self.header = None
         # self.trailer = None
         self.line_counter = 0
         self.build_structure = None
@@ -60,10 +60,58 @@ class MMCIFParser:
                 warnings.filterwarnings("ignore", category=PDBConstructionWarning)
             self._mmcif_dict = MMCIF2Dict(filename)
             self._build_structure(structure_id)
+            self._structure_builder.set_header(self._get_header())
 
         return self._structure_builder.get_structure()
 
     # Private methods
+
+    def _mmcif_get(self, key, dict, deflt):
+        if key in dict:
+            rslt = dict[key][0]
+            if "?" != rslt:
+                return rslt
+        return deflt
+
+    def _update_header_entry(self, target_key, keys):
+        md = self._mmcif_dict
+        for key in keys:
+            val = md.get(key)
+            try:
+                item = val[0]
+            except (TypeError, IndexError):
+                continue
+            if item != "?":
+                self.header[target_key] = item
+                break
+
+    def _get_header(self):
+        self.header = {
+            "name": "",
+            "head": "",
+            "idcode": "",
+            "deposition_date": "",
+            "structure_method": "",
+            "resolution": 0.0,
+        }
+
+        self._update_header_entry(
+            "idcode", ["_entry_id", "_exptl.entry_id", "_struct.entry_id"]
+        )
+        self._update_header_entry("name", ["_struct.title"])
+        self._update_header_entry(
+            "head", ["_struct_keywords.pdbx_keywords", "_struct_keywords.text"]
+        )
+        self._update_header_entry(
+            "deposition_date", ["_pdbx_database_status.recvd_initial_deposition_date"]
+        )
+        self._update_header_entry("structure_method", ["_exptl.method"])
+        self._update_header_entry(
+            "resolution", ["_refine.ls_d_res_high", "_refine_hist.d_res_high"]
+        )
+        self.header["resolution"] = float(self.header["resolution"])
+
+        return self.header
 
     def _build_structure(self, structure_id):
 

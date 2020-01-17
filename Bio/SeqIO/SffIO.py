@@ -1,4 +1,4 @@
-# Copyright 2009-2016 by Peter Cock.  All rights reserved.
+# Copyright 2009-2020 by Peter Cock.  All rights reserved.
 # Based on code contributed and copyright 2009 by Jose Blanca (COMAV-UPV).
 #
 # This code is part of the Biopython distribution and governed by its
@@ -239,39 +239,12 @@ import struct
 import sys
 import re
 
-from Bio._py3k import _as_bytes
-
 _null = b"\0"
 _sff = b".sff"
 _hsh = b".hsh"
 _srt = b".srt"
 _mft = b".mft"
 _flag = b"\xff"
-
-
-def _check_mode(handle):
-    """Ensure handle not opened in text mode (PRIVATE).
-
-    Ensures mode is not set for Universal new line
-    and ensures mode is binary for Windows
-    """
-    # TODO - Does this need to be stricter under Python 3?
-    mode = ""
-    if hasattr(handle, "mode"):
-        mode = handle.mode
-        if mode == 1:
-            # gzip.open(...) does this, fine
-            return
-        mode = str(mode)
-
-    if mode and "U" in mode.upper():
-        raise ValueError(
-            "SFF files must NOT be opened in universal new "
-            "lines mode. Binary mode is recommended (although "
-            "on Unix the default mode is also fine)."
-        )
-    elif mode and "B" not in mode.upper() and sys.platform == "win32":
-        raise ValueError("SFF files must be opened in binary mode on Windows")
 
 
 def _sff_file_header(handle):
@@ -299,7 +272,6 @@ def _sff_file_header(handle):
     'TCAG'
 
     """
-    _check_mode(handle)
     # file header (part one)
     # use big endiean encdoing   >
     # magic_number               I
@@ -319,20 +291,23 @@ def _sff_file_header(handle):
         raise ValueError("Empty file.")
     elif len(data) < 31:
         raise ValueError("File too small to hold a valid SFF header.")
-    (
-        magic_number,
-        ver0,
-        ver1,
-        ver2,
-        ver3,
-        index_offset,
-        index_length,
-        number_of_reads,
-        header_length,
-        key_length,
-        number_of_flows_per_read,
-        flowgram_format,
-    ) = struct.unpack(fmt, data)
+    try:
+        (
+            magic_number,
+            ver0,
+            ver1,
+            ver2,
+            ver3,
+            index_offset,
+            index_length,
+            number_of_reads,
+            header_length,
+            key_length,
+            number_of_flows_per_read,
+            flowgram_format,
+        ) = struct.unpack(fmt, data)
+    except TypeError:
+        raise ValueError("SFF files must NOT be opened in text mode, binary required.")
     if magic_number in [_hsh, _srt, _mft]:
         # Probably user error, calling Bio.SeqIO.parse() twice!
         raise ValueError("Handle seems to be at SFF index block, not start")
@@ -1159,14 +1134,20 @@ class SffWriter(SequenceWriter):
         """Initialize an SFF writer object.
 
         Arguments:
-         - handle - Output handle, ideally in binary write mode.
+         - handle - Output handle, in binary write mode.
          - index - Boolean argument, should we try and write an index?
          - xml - Optional string argument, xml manifest to be recorded
            in the index block (see function ReadRocheXmlManifest for
            reading this data).
 
         """
-        _check_mode(handle)
+        try:
+            # Confirm we have a binary handle,
+            handle.write(b"")
+        except TypeError:
+            raise ValueError(
+                "SFF files must NOT be opened in text mode, binary required."
+            ) from None
         self.handle = handle
         self._xml = xml
         if index:
@@ -1212,8 +1193,8 @@ class SffWriter(SequenceWriter):
             # return 0
             raise ValueError("Must have at least one sequence")
         try:
-            self._key_sequence = _as_bytes(record.annotations["flow_key"])
-            self._flow_chars = _as_bytes(record.annotations["flow_chars"])
+            self._key_sequence = record.annotations["flow_key"].encode()
+            self._flow_chars = record.annotations["flow_chars"].encode()
             self._number_of_flows_per_read = len(self._flow_chars)
         except KeyError:
             raise ValueError("Missing SFF flow information")
@@ -1243,7 +1224,7 @@ class SffWriter(SequenceWriter):
         self._index_start = handle.tell()  # need for header
         # XML...
         if self._xml is not None:
-            xml = _as_bytes(self._xml)
+            xml = self._xml.encode()
         else:
             from Bio import __version__
 
@@ -1252,7 +1233,7 @@ class SffWriter(SequenceWriter):
                 "<!-- This XML and index block attempts to mimic Roche SFF files -->\n"
             )
             xml += "<!-- This file may be a combination of multiple SFF files etc -->\n"
-            xml = _as_bytes(xml)
+            xml = xml.encode()
         xml_len = len(xml)
         # Write to the file...
         fmt = ">I4BLL"
@@ -1377,9 +1358,9 @@ class SffWriter(SequenceWriter):
         This assumes the header has been done.
         """
         # Basics
-        name = _as_bytes(record.id)
+        name = record.id.encode()
         name_len = len(name)
-        seq = _as_bytes(str(record.seq).upper())
+        seq = str(record.seq).upper().encode()
         seq_len = len(seq)
         # Qualities
         try:
@@ -1390,9 +1371,8 @@ class SffWriter(SequenceWriter):
         try:
             flow_values = record.annotations["flow_values"]
             flow_index = record.annotations["flow_index"]
-            if self._key_sequence != _as_bytes(
-                record.annotations["flow_key"]
-            ) or self._flow_chars != _as_bytes(record.annotations["flow_chars"]):
+            if self._key_sequence != record.annotations["flow_key"].encode()\
+                    or self._flow_chars != record.annotations["flow_chars"].encode():
                 raise ValueError("Records have inconsistent SFF flow data")
         except KeyError:
             raise ValueError("Missing SFF flow information for %s" % record.id)

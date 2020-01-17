@@ -29,9 +29,6 @@ import os
 try:
     from setuptools import setup
     from setuptools import Command
-    from setuptools.command.install import install
-    from setuptools.command.build_py import build_py
-    from setuptools.command.build_ext import build_ext
     from setuptools import Extension
 except ImportError:
     sys.exit(
@@ -48,74 +45,6 @@ if "bdist_wheel" in sys.argv:
             "for bdist_wheel to work. Try running: pip install wheel"
         )
 
-_CHECKED = None
-
-
-def osx_clang_fix():
-    """Add clang switch to ignore unused arguments to avoid OS X compile error.
-
-    This is a hack to cope with Apple shipping a version of Python compiled
-    with the -mno-fused-madd argument which clang from XCode 5.1 does not
-    support::
-
-        $ cc -v
-        Apple LLVM version 5.1 (clang-503.0.40) (based on LLVM 3.4svn)
-        Target: x86_64-apple-darwin13.2.0
-        Thread model: posix
-
-        $ which python-config
-        /Library/Frameworks/Python.framework/Versions/Current/bin/python-config
-
-        $ python-config --cflags
-        -I/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5
-        -I/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5
-        -arch ppc -arch i386 -isysroot /Developer/SDKs/MacOSX10.4u.sdk
-        -fno-strict-aliasing -Wno-long-double -no-cpp-precomp -mno-fused-madd
-        -fno-common -dynamic -DNDEBUG -g -O3
-
-    We can avoid the clang compilation error with -Qunused-arguments which is
-    (currently) harmless if gcc is being used instead (e.g. compiling Biopython
-    against a locally compiled Python rather than the Apple provided Python).
-    """
-    # see http://lists.open-bio.org/pipermail/biopython-dev/2014-April/011240.html
-    if sys.platform != "darwin":
-        return
-    # see also Bio/_py3k/__init__.py (which we can't use in setup.py)
-    if sys.version_info[0] >= 3:
-        from subprocess import getoutput
-    else:
-        from commands import getoutput
-    from distutils.ccompiler import new_compiler
-    from distutils.sysconfig import customize_compiler
-
-    # The compiler test should be made on the actual compiler that'll be used
-    compiler = new_compiler()
-    customize_compiler(compiler)
-    cc = getoutput("{} -v".format(compiler.compiler[0]))
-    if "gcc" in cc or "clang" not in cc:
-        return
-    for flag in ["CFLAGS", "CPPFLAGS"]:
-        if flag not in os.environ:
-            os.environ[flag] = "-Qunused-arguments"
-        elif "-Qunused-arguments" not in os.environ[flag]:
-            os.environ[flag] += " -Qunused-arguments"
-
-
-osx_clang_fix()
-
-
-def is_pypy():
-    """Check if running under the PyPy implementation of Python."""
-    import platform
-
-    try:
-        if platform.python_implementation() == "PyPy":
-            return True
-    except AttributeError:
-        # New in Python 2.6
-        pass
-    return False
-
 
 # Make sure we have the right Python version.
 if sys.version_info[:2] < (3, 6):
@@ -124,64 +53,6 @@ if sys.version_info[:2] < (3, 6):
         "Python %d.%d detected.\n" % sys.version_info[:2]
     )
     sys.exit(1)
-
-
-def check_dependencies_once():
-    """Check dependencies, will cache and re-use the result."""
-    # Call check_dependencies, but cache the result for subsequent
-    # calls.
-    global _CHECKED
-    if _CHECKED is None:
-        _CHECKED = check_dependencies()
-    return _CHECKED
-
-
-def check_dependencies():
-    """Return whether the installation should continue."""
-    # There should be some way for the user to tell specify not to
-    # check dependencies.  For example, it probably should not if
-    # the user specified "-q".  However, I'm not sure where
-    # distutils stores that information.  Also, install has a
-    # --force option that gets saved in self.user_options.  It
-    # means overwrite previous installations.  If the user has
-    # forced an installation, should we also ignore dependencies?
-
-    # Currently there are no compile time dependencies
-    return True
-
-
-class install_biopython(install):
-    """Override the standard install to check for dependencies.
-
-    This will just run the normal install, and then print warning messages
-    if packages are missing.
-    """
-
-    def run(self):
-        """Run the installation."""
-        if check_dependencies_once():
-            # Run the normal install.
-            install.run(self)
-
-
-class build_py_biopython(build_py):
-    """Biopython builder."""
-
-    def run(self):
-        """Run the build."""
-        if not check_dependencies_once():
-            return
-        build_py.run(self)
-
-
-class build_ext_biopython(build_ext):
-    """Biopython extension builder."""
-
-    def run(self):
-        """Run the build."""
-        if not check_dependencies_once():
-            return
-        build_ext.run(self)
 
 
 class test_biopython(Command):
@@ -312,7 +183,6 @@ PACKAGES = [
     "Bio.UniGene",
     "Bio.UniProt",
     "Bio.Wise",
-    "Bio._py3k",
     # Other top level packages,
     "BioSQL",
 ]
@@ -335,16 +205,6 @@ EXTENSIONS = [
         "Bio.KDTree._CKDTree", ["Bio/KDTree/KDTree.c", "Bio/KDTree/KDTreemodule.c"]
     ),
 ]
-if not is_pypy():
-    # Bio.trie has a problem under PyPy2 v5.6 and 5.7
-    EXTENSIONS.extend(
-        [
-            Extension(
-                "Bio.trie", ["Bio/triemodule.c", "Bio/trie.c"], include_dirs=["Bio"]
-            )
-        ]
-    )
-
 
 # We now define the Biopython version number in Bio/__init__.py
 # Here we can't use "import Bio" then "Bio.__version__" as that would
@@ -354,21 +214,14 @@ for line in open("Bio/__init__.py"):
     if line.startswith("__version__"):
         exec(line.strip())
 
-# We now load in our reStructuredText README.rst file to pass
-# explicitly in the metadata since at time of writing PyPI
-# did not do this for us.
+# We now load in our reStructuredText README.rst file to pass explicitly in the
+# metadata, since at time of writing PyPI did not do this for us.
 #
-# Without declaring an encoding, if there was a problematic
-# character in the file, it would work on Python 2 but might
-# fail on Python 3 depending on the user's locale. By explicitly
-# checking ASCII (could use latin1 or UTF8 if needed later),
-# if any invalid character does appear in our README, this will
-# fail and alert us immediately on either platform.
-with open("README.rst", "rb") as handle:
-    # Only Python 3's open has an encoding argument.
-    # Opening in binary and doing decoding like this to work
-    # on both Python 2 and 3.
-    readme_rst = handle.read().decode("ascii")
+# Must make encoding explicit to avoid any conflict with the local default.
+# Currently keeping README as ASCII (might switch to UTF8 later if needed).
+# If any invalid character does appear in README, this will fail and alert us.
+with open("README.rst", encoding="ascii") as handle:
+    readme_rst = handle.read()
 
 setup(
     name="biopython",
@@ -398,12 +251,7 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    cmdclass={
-        "install": install_biopython,
-        "build_py": build_py_biopython,
-        "build_ext": build_ext_biopython,
-        "test": test_biopython,
-    },
+    cmdclass={"test": test_biopython},
     packages=PACKAGES,
     ext_modules=EXTENSIONS,
     include_package_data=True,  # done via MANIFEST.in under setuptools

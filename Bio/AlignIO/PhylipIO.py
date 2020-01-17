@@ -205,7 +205,7 @@ class PhylipIterator(AlignmentIterator):
             number_of_seqs = int(parts[0])
             length_of_seqs = int(parts[1])
         except ValueError:
-            raise ValueError("First line should have two integers")
+            raise ValueError("First line should have two integers") from None
 
         assert self._is_header(line)
 
@@ -284,7 +284,7 @@ class RelaxedPhylipWriter(PhylipWriter):
         if len(alignment) == 0:
             id_width = 1
         else:
-            id_width = max((len(s.id.strip()) for s in alignment)) + 1
+            id_width = max(len(s.id.strip()) for s in alignment) + 1
         super().write_alignment(alignment, id_width)
 
 
@@ -385,7 +385,7 @@ class SequentialPhylipIterator(PhylipIterator):
             number_of_seqs = int(parts[0])
             length_of_seqs = int(parts[1])
         except ValueError:
-            raise ValueError("First line should have two integers")
+            raise ValueError("First line should have two integers") from None
 
         assert self._is_header(line)
 

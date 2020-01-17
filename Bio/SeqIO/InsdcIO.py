@@ -591,6 +591,7 @@ class GenBankWriter(_InsdcWriter):
             "HTC",
             "ENV",
             "CON",
+            "TSA",
         ]:
             # Good, already GenBank style
             #    PRI - primate sequences
@@ -612,6 +613,7 @@ class GenBankWriter(_InsdcWriter):
             #    HTC - HTC sequences (high throughput cDNA sequences)
             #    ENV - Environmental sampling sequences
             #    CON - Constructed sequences
+            #    TSA - Transcriptome Shotgun Assembly
             #
             # (plus UNK for unknown)
             pass
@@ -900,15 +902,13 @@ class GenBankWriter(_InsdcWriter):
                     padding = len(subkey) if len(subkey) > padding else padding
             # Construct output
             for key, data in comment.items():
-                lines.append("##{0}{1}".format(key, self.STRUCTURED_COMMENT_START))
+                lines.append(f"##{key}{self.STRUCTURED_COMMENT_START}")
                 for subkey, subdata in data.items():
                     spaces = " " * (padding - len(subkey))
                     lines.append(
-                        "{0}{1}{2}{3}".format(
-                            subkey, spaces, self.STRUCTURED_COMMENT_DELIM, subdata
-                        )
+                        f"{subkey}{spaces}{self.STRUCTURED_COMMENT_DELIM}{subdata}"
                     )
-                lines.append("##{0}{1}".format(key, self.STRUCTURED_COMMENT_END))
+                lines.append(f"##{key}{self.STRUCTURED_COMMENT_END}")
         if "comment" in record.annotations:
             comment = record.annotations["comment"]
             if isinstance(comment, str):
@@ -1140,7 +1140,7 @@ class EmblWriter(_InsdcWriter):
                 index = (
                     self.LETTERS_PER_LINE * line_number + self.LETTERS_PER_BLOCK * block
                 )
-                handle.write((" %s" % data[index : index + self.LETTERS_PER_BLOCK]))
+                handle.write(" %s" % data[index : index + self.LETTERS_PER_BLOCK])
             handle.write(
                 str((line_number + 1) * self.LETTERS_PER_LINE).rjust(
                     self.POSITION_PADDING

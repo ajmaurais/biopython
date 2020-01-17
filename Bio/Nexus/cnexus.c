@@ -1,7 +1,9 @@
 /* Copyright 2005 by Frank Kauff.  All rights reserved.
- * This code is part of the Biopython distribution and governed by its
- * license. Please see the LICENSE file that should have been included
- * as part of this package.
+ *
+ * This file is part of the Biopython distribution and governed by your
+ * choice of the "Biopython License Agreement" or the "BSD 3-Clause License".
+ * Please see the LICENSE file that should have been included as part of this
+ * package.
  *
  * cnexus.c
  *
@@ -107,8 +109,6 @@ static PyMethodDef cNexusMethods[]=
     {NULL,NULL,0,NULL}
 };
 
-#if PY_MAJOR_VERSION >= 3
-
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
         "cnexus",
@@ -126,12 +126,3 @@ PyInit_cnexus(void)
 {
     return PyModule_Create(&moduledef);
 }
-
-
-#else
-
-PyMODINIT_FUNC initcnexus(void)
-{
-    (void) Py_InitModule("cnexus",cNexusMethods);
-}
-#endif

@@ -27,8 +27,6 @@ from itertools import chain
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
-from Bio._py3k import _as_string
-
 
 # Pathway
 class Pathway:
@@ -87,7 +85,7 @@ class Pathway:
                 "<!-- Created by KGML_Pathway.py %s -->" % time.asctime(),
             ]
         )
-        rough_xml = header + _as_string(ET.tostring(self.element, "utf-8"))
+        rough_xml = header + ET.tostring(self.element, "utf-8").decode()
         reparsed = minidom.parseString(rough_xml)
         return reparsed.toprettyxml(indent="  ")
 
@@ -121,9 +119,7 @@ class Pathway:
                 % (type(reaction.id), reaction.id)
             )
         if reaction.id not in self.entries:
-            raise ValueError(
-                "Reaction ID %d has no corresponding entry" % reaction.id
-            )
+            raise ValueError("Reaction ID %d has no corresponding entry" % reaction.id)
         reaction._pathway = self  # Let the reaction know about the pathway
         self._reactions[reaction.id] = reaction
 
@@ -170,9 +166,7 @@ class Pathway:
 
     def _setname(self, value):
         if not value.startswith("path:"):
-            raise ValueError(
-                "Pathway name should begin with 'path:', got %s" % value
-            )
+            raise ValueError("Pathway name should begin with 'path:', got %s" % value)
         self._name = value
 
     def _delname(self):

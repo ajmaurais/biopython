@@ -9,7 +9,6 @@ Initially this takes matched tests of GenBank and FASTA files from the NCBI
 and confirms they are consistent using our different parsers.
 """
 import unittest
-import sys
 
 from Bio import SeqIO
 from Bio.Alphabet import generic_dna, generic_protein
@@ -155,15 +154,14 @@ Seq('ABCDEFGHIJKLMNOPQRSTUVWZYX', ProteinAlphabet())"""
 
     def test_format_str(self):
         expected = ">TestID TestDescr\nABCDEFGHIJKLMNOPQRSTUVWZYX\n"
-        self.assertEqual(expected, "{:fasta}".format(self.record))
+        self.assertEqual(expected, f"{self.record:fasta}")
 
-    if sys.version_info[0] >= 3:
-        def test_format_str_binary(self):
-            with self.assertRaisesRegex(
-                ValueError,
-                "Binary format sff cannot be used with SeqRecord format method"
-            ):
-                "{:sff}".format(self.record)
+    def test_format_str_binary(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "Binary format sff cannot be used with SeqRecord format method"
+        ):
+            f"{self.record:sff}"
 
     def test_format_spaces(self):
         rec = SeqRecord(Seq("ABCDEFGHIJKLMNOPQRSTUVWZYX", generic_protein),

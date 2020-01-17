@@ -50,6 +50,9 @@ Functions:
 import os
 import re
 
+from urllib.parse import urlencode
+from urllib.request import urlopen
+
 from . import Des
 from . import Cla
 from . import Hie
@@ -463,9 +466,16 @@ class Scop:
             for d in data:
                 if int(d[0]) not in self._sunidDict:
                     n = Domain(scop=self)
-                    n.sunid, n.sid, pdbid, n.residues, n.sccs, n.type, n.description, n.parent = d[
-                        0:8
-                    ]
+                    (
+                        n.sunid,
+                        n.sid,
+                        pdbid,
+                        n.residues,
+                        n.sccs,
+                        n.type,
+                        n.description,
+                        n.parent,
+                    ) = d[0:8]
                     n.residues = Residues.Residues(n.residues)
                     n.residues.pdbid = pdbid
                     n.sunid = int(n.sunid)
@@ -943,8 +953,6 @@ def _open(cgi, params=None, get=1):
     that describes whether a GET should be used.
 
     """
-    from Bio._py3k import urlopen, urlencode
-
     # Open a handle to SCOP.
     if params is None:
         params = {}

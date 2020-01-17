@@ -112,7 +112,10 @@ def parse(handle):
             record.comments += line
             primer = None
         elif line.startswith("#"):
-            if line.strip() != "#                      Start  Len   Tm     GC%   Sequence":
+            if (
+                line.strip()
+                != "#                      Start  Len   Tm     GC%   Sequence"
+            ):
                 record.comments += line
         elif not line.strip():
             pass
@@ -169,13 +172,12 @@ def read(handle):
     """
     iterator = parse(handle)
     try:
-        first = next(iterator)
+        record = next(iterator)
     except StopIteration:
-        raise ValueError("No records found in handle")
+        raise ValueError("No records found in handle") from None
     try:
-        second = next(iterator)
-    except StopIteration:
-        second = None
-    if second is not None:
+        next(iterator)
         raise ValueError("More than one record found in handle")
-    return first
+    except StopIteration:
+        pass
+    return record

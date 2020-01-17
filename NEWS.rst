@@ -16,6 +16,9 @@ tested on PyPy3.6.1 v7.1.1-beta0.
 
 **We have dropped support for Python 2 now.**
 
+The codon tables have been updated to NCBI genetic code table version 4.5,
+which adds Cephalodiscidae mitochondrial as table 33.
+
 As in recent releases, more of our code is now explicitly available under
 either our original "Biopython License Agreement", or the very similar but
 more commonly used "3-Clause BSD License".  See the ``LICENSE.rst`` file for
@@ -30,7 +33,10 @@ Many thanks to the Biopython developers and community for making this release
 possible, especially the following contributors:
 
 - Chris Rands
+- Deepak Khatri
+- Kai Blin
 - Peter Cock
+- Rob Miller
 - Sujan Dulal (first contribution)
 
 20 December 2019: Biopython 1.76
@@ -45,6 +51,10 @@ As in recent releases, more of our code is now explicitly available under
 either our original "Biopython License Agreement", or the very similar but
 more commonly used "3-Clause BSD License".  See the ``LICENSE.rst`` file for
 more details.
+
+
+``PDBParser`` and ``PDBIO`` now support PQR format file parsing and input/
+output.
 
 In addition to the mainstream ``x86_64`` aka ``AMD64`` CPU architecture, we
 now also test every contribution on the ``ARM64``, ``ppc64le``, and ``s390x``
@@ -67,6 +77,7 @@ possible, especially the following contributors:
 - Andrey Raspopov
 - Chris Daley (first contribution)
 - Chris Rands
+- Artemi Bendandi (first contribution)
 - Christian Brueffer
 - Deepak Khatri
 - Ilya Flyamer (first contribution)
@@ -74,7 +85,11 @@ possible, especially the following contributors:
 - Michael R. Crusoe (first contribution)
 - Michiel de Hoon
 - Peter Cock
+- Chris Daley (first contribution)
+- Michiel de Hoon
+- Jakub Lipinski (first contribution)
 - Sergio Valqui
+- Konstantinos Zisis (first contribution)
 
 6 November 2019: Biopython 1.75
 ===============================
@@ -263,7 +278,7 @@ possible, especially the following contributors:
 - Peter Cock
 - Peter Kerpedjiev
 - Ralf Stephan
-- Rob Miller
+- Rob Miller (first contribution)
 - Sergio Valqui
 - Victor Lin
 - Wibowo 'Bow' Arindrarto

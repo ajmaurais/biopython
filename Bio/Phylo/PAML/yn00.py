@@ -16,10 +16,6 @@ from ._paml import Paml
 from . import _parse_yn00
 
 
-# TODO - Restore use of with statement for closing handles automatically
-# after dropping Python 2.4
-
-
 class Yn00Error(EnvironmentError):
     """yn00 failed. Run with verbose=True to view yn00's error message."""
 
@@ -67,7 +63,7 @@ class Yn00(Paml):
         """Parse a control file and load the options into the yn00 instance."""
         temp_options = {}
         if not os.path.isfile(ctl_file):
-            raise IOError("File not found: %r" % ctl_file)
+            raise FileNotFoundError("File not found: %r" % ctl_file)
         else:
             with open(ctl_file) as ctl_handle:
                 for line in ctl_handle:
@@ -121,7 +117,7 @@ def read(results_file):
     """Parse a yn00 results file."""
     results = {}
     if not os.path.exists(results_file):
-        raise IOError("Results file does not exist.")
+        raise FileNotFoundError("Results file does not exist.")
     with open(results_file) as handle:
         lines = handle.readlines()
     if not lines:

@@ -879,14 +879,14 @@ class DataHandler:
         path = os.path.join(self.local_dtd_dir, filename)
         try:
             handle = open(path, "rb")
-        except IOError:
+        except FileNotFoundError:
             pass
         else:
             return handle
         path = os.path.join(self.global_dtd_dir, filename)
         try:
             handle = open(path, "rb")
-        except IOError:
+        except FileNotFoundError:
             pass
         else:
             return handle
@@ -898,14 +898,14 @@ class DataHandler:
         path = os.path.join(self.local_xsd_dir, filename)
         try:
             handle = open(path, "rb")
-        except IOError:
+        except FileNotFoundError:
             pass
         else:
             return handle
         path = os.path.join(self.global_xsd_dir, filename)
         try:
             handle = open(path, "rb")
-        except IOError:
+        except FileNotFoundError:
             pass
         else:
             return handle
@@ -917,7 +917,7 @@ class DataHandler:
         path = os.path.join(self.local_dtd_dir, filename)
         try:
             handle = open(path, "wb")
-        except IOError:
+        except OSError:
             warnings.warn("Failed to save %s at %s" % (filename, path))
         else:
             handle.write(text)
@@ -929,7 +929,7 @@ class DataHandler:
         path = os.path.join(self.local_xsd_dir, filename)
         try:
             handle = open(path, "wb")
-        except IOError:
+        except OSError:
             warnings.warn("Failed to save %s at %s" % (filename, path))
         else:
             handle.write(text)
@@ -945,12 +945,10 @@ class DataHandler:
         putting them in Bio/Entrez/DTDs will allow the parser to see them.
         """
         urlinfo = urlparse(systemId)
-        # Following attribute requires Python 2.5+
-        # if urlinfo.scheme=='http':
-        if urlinfo[0] in ["http", "https", "ftp"]:
+        if urlinfo.scheme in ["http", "https", "ftp"]:
             # Then this is an absolute path to the DTD.
             url = systemId
-        elif urlinfo[0] == "":
+        elif urlinfo.scheme == "":
             # Then this is a relative path to the DTD.
             # Look at the parent URL to find the full path.
             try:
@@ -964,7 +962,7 @@ class DataHandler:
             # urls always have a forward slash, don't use os.path.join
             url = source.rstrip("/") + "/" + systemId
         else:
-            raise ValueError("Unexpected URL scheme %r" % (urlinfo[0]))
+            raise ValueError("Unexpected URL scheme %r" % urlinfo.scheme)
         self.dtd_urls.append(url)
         # First, try to load the local version of the DTD file
         location, filename = os.path.split(systemId)
@@ -974,7 +972,7 @@ class DataHandler:
             # the internet instead.
             try:
                 handle = urlopen(url)
-            except IOError:
+            except OSError:
                 raise RuntimeError("Failed to access %s at %s" % (filename, url)) from None
             text = handle.read()
             handle.close()
@@ -1007,21 +1005,10 @@ class DataHandler:
             del platform
         # Create DTD local directory
         self.local_dtd_dir = os.path.join(self.directory, "Bio", "Entrez", "DTDs")
-        try:
-            os.makedirs(self.local_dtd_dir)  # use exist_ok=True on Python >= 3.2
-        except OSError as exception:
-            # Check if local_dtd_dir already exists, and that it is a directory.
-            # Trying os.makedirs first and then checking for os.path.isdir avoids
-            # a race condition.
-            if not os.path.isdir(self.local_dtd_dir):
-                raise exception from None
+        os.makedirs(self.local_dtd_dir, exist_ok=True)
         # Create XSD local directory
         self.local_xsd_dir = os.path.join(self.directory, "Bio", "Entrez", "XSDs")
-        try:
-            os.makedirs(self.local_xsd_dir)  # use exist_ok=True on Python >= 3.2
-        except OSError as exception:
-            if not os.path.isdir(self.local_xsd_dir):
-                raise exception from None
+        os.makedirs(self.local_xsd_dir, exist_ok=True)
 
     @property
     def directory(self):
